@@ -1,0 +1,1 @@
+# ansible all -m shell -a 'ps -elf |grep -v grep |grep  /var/lib/logstash' |tee texas-3_failed_logstash
