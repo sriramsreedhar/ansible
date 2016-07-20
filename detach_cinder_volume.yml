@@ -1,12 +1,13 @@
-- hosts:  tenant_percona[0]
+---
+- hosts:  tenant_percona[1]
   gather_facts: false
-   vars_prompt:
-    - name: "cinder_volumeid"
+  vars_prompt:
+    - name: "volumeid"
       prompt: " Detachment issues? Enter Cinder volume ID...  "
+      private: no
   tasks:
     - name: detach cinder volumes
-      shell: mysql -sNe "update volumes set attach_status='detached',status='available' where id ='${cinder_volumeid}'" cinder
-      register: cinder_detach_volumes	  	 	 
+      command: mysql -sNe "update volumes set attach_status='detached',status='available' where `id`='$volumeid'"; cinder 
 # Extras
 #======
 #shell: mysql -sNe "select host from services where deleted=0 and topic = 'compute';" cinder
