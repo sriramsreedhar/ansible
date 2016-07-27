@@ -7,3 +7,7 @@
     - name: Schedule downtime for all services on this host
       delegate_to: nagioss-server-001
       nagios: action=downtime minutes={{ minutes }} service=host host={{ inventory_hostname }}
+      
+      
+      #Usage - Target is hosts that you want to disable for example nova controller groups etc...
+      #ansible-playbook /opt/cis/tools/ansible/utils/nagios-downtime.yml -e 'target=hosts_group_that_needs_to_be_disabled minutes=240'
