@@ -1,0 +1,9 @@
+---
+- hosts: '{{ target }}'
+  gather_facts: false
+  vars:
+    minutes: '{{ minutes | default(30) }}'
+  tasks:
+    - name: Schedule downtime for all services on this host
+      delegate_to: nagioss-server-001
+      nagios: action=downtime minutes={{ minutes }} service=host host={{ inventory_hostname }}
