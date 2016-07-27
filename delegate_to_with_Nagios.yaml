@@ -1,0 +1,7 @@
+---
+- name: enable alerts for web servers
+  hosts: web
+  tasks:
+    - name: enable alerts
+      nagios: action=enable_alerts service=web host={{ inventory_hostname }}
+      delegate_to: nagios.example.com
