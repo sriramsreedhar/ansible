@@ -1,0 +1,17 @@
+---
+- name: install system packages in ubuntu
+  apt: pkg={{ item }} update_cache=yes cache_valid_time=3600
+  sudo: True
+  with_items:
+    - git
+    - libjpeg-dev
+    - libpq-dev
+    - memcached
+    - nginx
+    - postgresql
+    - python-dev
+    - python-pip
+    - python-psycopg2
+    - python-setuptools
+    - python-virtualenv
+    - supervisor
