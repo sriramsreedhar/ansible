@@ -1,0 +1,11 @@
+---
+- name: pass a message on the command line
+  hosts: localhost
+  vars:
+    greeting: "you didn't specify a message"
+  tasks:
+    - name: output a message
+      debug: msg="{{ greeting }}"
+      
+
+# ansible-playbook greet.yml -e greeting=hiya   
