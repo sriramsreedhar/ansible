@@ -9,5 +9,13 @@
       
 
 #usage of the playbook
+
 # ansible-playbook greet.yml -e greeting=hiya
 #ansible-playbook greet.yml -e 'greeting="hi there"'
+
+#greetvars.yml (create a file with below content)
+#greeting: hiya
+
+
+#ansible-playbook greet.yml -e @greetvars.yml
+
