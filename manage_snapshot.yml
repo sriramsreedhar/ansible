@@ -1,3 +1,4 @@
+---
 - name: get snapshot id
   shell: >
     aws ec2 describe-snapshots --filters
