@@ -1,0 +1,13 @@
+- name: get snapshot id
+  shell: >
+    aws ec2 describe-snapshots --filters
+    Name=tag:Name,Values=my-snapshot
+    | jq --raw-output ".Snapshots[].SnapshotId"
+  register: snap_result
+
+- set_fact: snap={{ snap_result.stdout }}
+
+- name: delete old snapshot
+  command: aws ec2 delete-snapshot --snapshot-id "{{ snap }}"
+  
+  #manage aws snapshot using variable by way of set_fact
