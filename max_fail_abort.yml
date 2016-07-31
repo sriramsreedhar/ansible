@@ -1,0 +1,7 @@
+- hosts: webservers
+  max_fail_percentage: 30
+  serial: 10
+  tasks:
+    - name: task out of load balancer pool
+      command: /usr/bin/task_out_of_pool {{inventory_hostname}}
+      delegate_to: 127.0.0.1
