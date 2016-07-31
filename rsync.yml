@@ -1,0 +1,7 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+# ...
+  tasks:
+    - name: recursively copy file from management server to target
+      local_action: command rsync -a /path/to/files   {{inventory_hostname}}:/path/to/target/
