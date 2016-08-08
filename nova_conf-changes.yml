@@ -1,0 +1,57 @@
+---
+- hosts: dev_env_hosts
+  gather_facts: no
+  serial: 1
+
+  tasks:
+    - name: Create a backup of nova.conf
+      command: creates=/etc/nova/nova.conf_backup cp -p /etc/nova/nova.conf /etc/nova/nova.conf-pre_backup
+      tags: update
+
+    - name: Modify nova.conf
+      lineinfile: dest=/etc/nova/nova.conf
+                  regexp="^scheduler_host_subset_size=1$"
+                  line="scheduler_host_subset_size=5"
+                  insertafter="^#scheduler_host_subset_size=1$"
+                  state=present
+                  backrefs=yes
+      register: config_edit
+      tags: update
+
+    - name: Restart nova-scheduler service
+      service: name=openstack-nova-scheduler state=restarted
+      when: config_edit|changed
+      tags: update
+
+    - name: Wait 30s for nova-scheduler before moving on
+      wait_for: timeout=30
+      when: config_edit|changed
+      tags: update
+
+    - name: Verify nova-scheduler is running
+      service: name=openstack-nova-scheduler state=started
+      tags: update
+
+########## Tags for Roll Back ##########
+
+    - name: Roll back to original nova.conf
+      command: cp -pf /etc/nova/nova.conf-pre_backup /etc/nova/nova.conf
+      tags: rollback
+
+    - name: Verify original scheduler_host_subset_size value is there
+      command: grep '^scheduler_host_subset_size=1$' /etc/nova/nova.conf
+      changed_when: False
+      tags: rollback
+
+    - name: Restart nova-scheduler service
+      service: name=openstack-nova-scheduler state=restarted
+      tags: rollback
+
+    - name: Wait 30s for nova-scheduler before moving on
+      wait_for: timeout=30
+      tags: rollback
+
+    - name: Verify nova-scheduler is running
+      service: name=openstack-nova-scheduler state=started enabled=yes
+      tags: rollback
+# 
