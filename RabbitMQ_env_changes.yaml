@@ -1,0 +1,22 @@
+---
+- hosts: "{{target}}"
+  gather_facts: no
+
+  vars:
+    - env_conf: /etc/rabbitmq/rabbitmq-env.conf
+
+  tasks:
+    - stat: path={{ env_conf }}
+      register: env_f
+
+    - name: Check for RABBITMQ_SERVER_ERL_ARGS in rabbitmq-env.conf
+      command: fgrep -c RABBITMQ_SERVER_ERL_ARGS {{ env_conf }}
+      register: cnt
+      changed_when: False
+      failed_when: "'FAILED' in cnt.stderr"
+      when: env_f.stat.exists
+
+    - name: Removing RABBITMQ_SERVER_ERL_ARGS from rabbitmq-env.conf
+      shell: for j in kernel native; do sed -e "/$j/d" {{ env_conf }} > {{ env_conf }}.new \
+             && mv -f {{ env_conf }}.new {{ env_conf }}; done
+      when: env_f.stat.exists and cnt is defined and cnt.stdout|int != 0
