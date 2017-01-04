@@ -1,0 +1,79 @@
+---
+- hosts:
+    - group_percona[0]
+  gather_facts: false
+  vars:
+    - instance_type: "{{flavor}}"
+    - state: "{{action}}"
+    - is_dry_run: "{{dry_run|default('yes')}}"
+    - backup_path: "/var/log/flavor_backups"
+  tasks:
+    - name: assert action type in disable or public
+      fail: msg="{{ state }} type must be either 'disable' or 'public'"
+      when: "state != 'disable' and state != 'public'"
+
+    - name: assert there's no sepcial character in the flavor name
+      fail: msg="{{ instance_type }} is not  allowed"
+      when: "instance_type|escape != instance_type"
+
+    - name: query flavor by name
+      shell: /usr/bin/mysql -sNe "select id from instance_types where name='{{instance_type}}' and deleted=0;" nova
+      register: query_by_name
+
+    - name: query flavor by uuid
+      shell: /usr/bin/mysql -sNe "select id from instance_types where flavorid='{{instance_type}}' and deleted=0;" nova
+      register: query_by_uuid
+
+    - name: assert found the flavor
+      fail: the flavor not found
+      when: query_by_name.stdout_lines|length != 1 and query_by_uuid.stdout_lines|length != 1
+
+    - name: set instance_type_id
+      set_fact: instance_type_id="{{item}}"
+      with_items:
+        - "{{query_by_name.stdout}}"
+        - "{{query_by_uuid.stdout}}"
+      when: item|length > 0
+
+    - name: get current flavor status - disabled
+      shell: /usr/bin/mysql -sNe "select disabled from instance_types where id='{{instance_type_id}}';" nova
+      register: is_disabled
+      when: "state == 'disable'"
+
+    - name: get current flavor status - is_public
+      shell: /usr/bin/mysql -sNe "select is_public from instance_types where id='{{instance_type_id}}';" nova
+      register: is_public
+      when: "state == 'public'"
+
+    - name: get date for backup
+      shell: "date +%Y%m%d%H%M%S"
+      register: date
+
+    - name: create backup dir
+      shell: test -d  {{backup_path}} || mkdir -p {{backup_path}}
+
+    - name: backup tables
+      shell: /usr/bin/mysqldump nova {{item}} > {{backup_path}}/nova.{{item}}.db_backup-{{date.stdout}}.sql
+      with_items:
+        - instance_types
+        - instance_type_projects
+      when: "not (is_dry_run|bool)"
+
+    - name: Set the flavor as disabled
+      shell: /usr/bin/mysql -sNe "update instance_types set disabled=1, updated_at=now() where id='{{instance_type_id}}';" nova
+      when: "state == 'disable' and is_disabled.stdout == '0' and not (is_dry_run|bool)"
+
+    - name: Set the flavor as public if it was private
+      shell: /usr/bin/mysql -sNe "update instance_types set is_public=1, updated_at=now() where id='{{instance_type_id}}';" nova
+      when: "state == 'public' and is_public.stdout == '0' and not (is_dry_run|bool)"
+
+    - name: Get instance_type_projects entries needs to be soft-delete
+      shell: /usr/bin/mysql -sNe "select id from instance_type_projects where instance_type_id='{{instance_type_id}}' and deleted=0;" nova
+      register: instance_type_projects_ids
+      when: "state == 'public' and is_public.stdout == '0' and not (is_dry_run|bool)"
+
+    - name: Soft delete instance_type_projects entries
+      shell: /usr/bin/mysql -sNe "update instance_type_projects set deleted='{{item}}', updated_at=now(), deleted_at=now() where id='{{item}}';" nova
+      with_items: instance_type_projects_ids.stdout_lines
+      when: "state == 'public' and is_public.stdout == '0' and not (is_dry_run|bool)"
+
