@@ -1,0 +1,42 @@
+---
+- hosts: "{{ target }}"
+  tasks:
+    - name: Stop Nova Compute Services - {{ target }}
+      service: name={{ item }} state=stopped
+      when: "'compute' in group_names or 'compute_lvm' in group_names or 'compute_rbd' in group_names or 'compute_qcow' in group_names"
+      with_items:
+        - nova-compute
+        - neutron-plugin-openvswitch-agent
+
+    - name: Stop Neutron Services - {{ target }}
+      service: name={{ item }} state=stopped
+      when: "'network_controller' in group_names"
+      with_items:
+        - neutron-plugin-openvswitch-agent
+        - neutron-dhcp-agent
+        - neutron-metadata-agent
+        - neutron-l3-agent
+        - neutron-plugin-vpn-agent
+        - neutron-plugin-metering-agent
+        - neutron-lbaas-agent
+
+    - name: OVS Cleanup - {{ target }}
+      shell: /usr/bin/neutron-ovs-cleanup
+
+    - name: Start Nova Compute Services - {{ target }}
+      service: name={{ item }} state=started
+      when: "'compute' in group_names or 'compute_lvm' in group_names or 'compute_rbd' in group_names or 'compute_qcow' in group_names"
+      with_items:
+        - neutron-plugin-openvswitch-agent
+        - nova-compute
+
+    - name: Start Neutron Services - {{ target }}
+      service: name={{ item }} state=started
+      when: "'network_controller' in group_names"
+      with_items:
+        - neutron-plugin-openvswitch-agent
+        - neutron-dhcp-agent
+        - neutron-metadata-agent
+        - neutron-l3-agent
+        - neutron-plugin-metering-agent
+        - neutron-lbaas-agent
