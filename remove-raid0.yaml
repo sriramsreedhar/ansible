@@ -1,0 +1,22 @@
+# Use this playbook to remove raid0 config  
+# Run like "ansible-playbook ./remove-raid0.yml -e 'target=hostname'
+# After this playbook completes you should run sbd_raid5.yml
+---
+- name: Delete raid0 virtual drive 1 on Nova3 nodes
+  hosts: "{{ target }}" 
+  gather_facts: no
+
+  tasks:
+
+  - name: umount instances
+    mount: name=/var/lib/nova/instances state=unmounted fstype=ext4 src=/dev/sdb
+    register: umount_sdb
+ 
+  - name: Wait for umount
+    wait_for: path=/var/lib/nova/instances delay=25 state=absent
+    when: umount_sdb | changed 
+
+  - name: Remove RAID
+    shell: /opt/MegaRAID/storcli/storcli64 /c0/v1 del 
+    register: delete_raid
+
